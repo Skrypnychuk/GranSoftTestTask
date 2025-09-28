@@ -38,41 +38,41 @@ import java.util.Random;
  *     <li>Resetting to the Intro screen</li>
  * </ul>
  */
-public class Main extends JFrame {
+public class SwingSortApp extends JFrame {
 
-    private static final int MAX_NUMBER = 1000;
+    private static final int MAX_RANDOM_VALUE = 1000;
 
-    private static final int SMALL_NUMBER_LIMIT = 30;
+    private static final int SMALL_NUMBER_THRESHOLD = 30;
 
-    private static final int MAX_PER_COLUMN = 10;
+    private static final int MAX_BUTTONS_PER_COLUMN = 10;
 
     private JPanel introPanel;
 
     private JPanel sortPanel;
 
-    private JTextField numberInput;
+    private JTextField inputField;
 
-    private JPanel numbersContainer;
+    private JPanel numbersGridPanel;
 
     private JButton[] numberButtons;
 
-    private JButton sortButton;
+    private JButton sortToggleButton;
 
     private JButton resetButton;
 
-    private boolean ascending = true;
+    private boolean isSortAscending = true;
 
-    private int[] numbers;
+    private int[] numbersArray;
 
-    private int n;
+    private int totalNumbers;
 
     /**
-     * Main constructor that sets up the application window and initializes panels.
+     * SwingSortApp constructor that sets up the application window and initializes panels.
      */
-    public Main() {
-        configureFrame();
-        initIntroPanel();
-        initSortPanel();
+    public SwingSortApp() {
+        configureWindow();
+        initializeIntroPanel();
+        initializeSortPanel();
         setContentPane(introPanel);
         setVisible(true);
     }
@@ -80,7 +80,7 @@ public class Main extends JFrame {
     /**
      * Configures the main JFrame settings including title, size, default close operation, and centering.
      */
-    private void configureFrame() {
+    private void configureWindow() {
         setTitle("Swing Sort App");
         setSize(600, 400);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -90,18 +90,18 @@ public class Main extends JFrame {
     /**
      * Initializes the Intro panel where the user inputs the number of random values.
      */
-    private void initIntroPanel() {
+    private void initializeIntroPanel() {
         introPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = createGbc();
+        GridBagConstraints gbc = createGridBagConstraints();
 
-        JLabel label = new JLabel("Enter number of random values:");
-        numberInput = new JTextField(10);
+        JLabel inputLabel = new JLabel("Enter number of random values:");
+        inputField = new JTextField(10);
         JButton enterButton = createEnterButton();
 
-        numberInput.addActionListener(e -> handleEnterClick());
+        inputField.addActionListener(e -> handleEnterAction());
 
-        addToPanel(introPanel, label, gbc, 0, 0, 1);
-        addToPanel(introPanel, numberInput, gbc, 1, 0, 1);
+        addToPanel(introPanel, inputLabel, gbc, 0, 0, 1);
+        addToPanel(introPanel, inputField, gbc, 1, 0, 1);
         addToPanel(introPanel, enterButton, gbc, 0, 1, 2);
     }
 
@@ -112,7 +112,7 @@ public class Main extends JFrame {
      */
     private JButton createEnterButton() {
         JButton enterButton = new JButton("Enter");
-        enterButton.addActionListener(e -> handleEnterClick());
+        enterButton.addActionListener(e -> handleEnterAction());
         return enterButton;
     }
 
@@ -120,12 +120,12 @@ public class Main extends JFrame {
      * Handles the action of clicking the Enter button or pressing Enter key.
      * Parses input, generates random numbers, and switches to the Sort panel.
      */
-    private void handleEnterClick() {
+    private void handleEnterAction() {
         try {
-            n = parseNumberInput();
-            generateNumbers(n);
+            totalNumbers = parseInputValue();
+            generateRandomNumbers(totalNumbers);
             createNumberButtons();
-            refreshNumbers();
+            layoutNumberButtons();
             switchToSortPanel();
         } catch (NumberFormatException ex) {
             showMessage("Please enter a valid number.");
@@ -140,10 +140,10 @@ public class Main extends JFrame {
      * @return integer value of user input
      *
      * @throws NumberFormatException if input is not a number
-     * @throws IllegalArgumentException if number is invalid (≤0 or > MAX_NUMBER)
+     * @throws IllegalArgumentException if number is invalid (≤0 or > MAX_RANDOM_VALUE)
      */
-    private int parseNumberInput() {
-        String text = numberInput.getText().trim();
+    private int parseInputValue() {
+        String text = inputField.getText().trim();
         int value;
 
         try {
@@ -156,8 +156,8 @@ public class Main extends JFrame {
             throw new IllegalArgumentException("Number must be positive.");
         }
 
-        if (value > MAX_NUMBER) {
-            throw new IllegalArgumentException("Number must be less than or equal to " + MAX_NUMBER + ".");
+        if (value > MAX_RANDOM_VALUE) {
+            throw new IllegalArgumentException("Number must be less than or equal to " + MAX_RANDOM_VALUE + ".");
         }
 
         return value;
@@ -175,22 +175,22 @@ public class Main extends JFrame {
     /**
      * Initializes the Sort panel with number buttons and action buttons (Sort, Reset).
      */
-    private void initSortPanel() {
+    private void initializeSortPanel() {
         sortPanel = new JPanel(new BorderLayout());
-        numbersContainer = new JPanel();
+        numbersGridPanel = new JPanel();
 
-        JPanel buttonsPanel = new JPanel(new FlowLayout());
-        sortButton = new JButton("Sort");
+        JPanel actionButtonsPanel = new JPanel(new FlowLayout());
+        sortToggleButton = new JButton("Sort");
         resetButton = new JButton("Reset");
 
-        sortButton.addActionListener(e -> startSorting());
+        sortToggleButton.addActionListener(e -> startSorting());
         resetButton.addActionListener(e -> switchToIntroPanel());
 
-        buttonsPanel.add(sortButton);
-        buttonsPanel.add(resetButton);
+        actionButtonsPanel.add(sortToggleButton);
+        actionButtonsPanel.add(resetButton);
 
-        sortPanel.add(new JScrollPane(numbersContainer), BorderLayout.CENTER);
-        sortPanel.add(buttonsPanel, BorderLayout.SOUTH);
+        sortPanel.add(new JScrollPane(numbersGridPanel), BorderLayout.CENTER);
+        sortPanel.add(actionButtonsPanel, BorderLayout.SOUTH);
     }
 
     /**
@@ -203,20 +203,20 @@ public class Main extends JFrame {
     }
 
     /**
-     * Generates an array of random numbers with at least one number ≤ 30.
+     * Generates an array of random numbers with at least one number ≤ SMALL_NUMBER_THRESHOLD.
      *
      * @param count the total number of random values to generate
      */
-    private void generateNumbers(int count) {
+    private void generateRandomNumbers(int count) {
         Random random = new Random();
-        numbers = new int[count];
-        int smallIndex = random.nextInt(count);
+        numbersArray = new int[count];
+        int smallNumberIndex = random.nextInt(count);
 
         for (int i = 0; i < count; i++) {
-            if (i == smallIndex) {
-                numbers[i] = random.nextInt(SMALL_NUMBER_LIMIT) + 1;
+            if (i == smallNumberIndex) {
+                numbersArray[i] = random.nextInt(SMALL_NUMBER_THRESHOLD) + 1;
             } else {
-                numbers[i] = random.nextInt(MAX_NUMBER) + 1;
+                numbersArray[i] = random.nextInt(MAX_RANDOM_VALUE) + 1;
             }
         }
     }
@@ -225,30 +225,30 @@ public class Main extends JFrame {
      * Creates JButton instances for each number in the array and assigns click listeners.
      */
     private void createNumberButtons() {
-        numberButtons = new JButton[n];
-        for (int i = 0; i < n; i++) {
-            int idx = i;
-            numberButtons[i] = new JButton(String.valueOf(numbers[i]));
-            numberButtons[i].addActionListener(e -> handleNumberClick(idx));
+        numberButtons = new JButton[totalNumbers];
+        for (int i = 0; i < totalNumbers; i++) {
+            int index = i;
+            numberButtons[i] = new JButton(String.valueOf(numbersArray[i]));
+            numberButtons[i].addActionListener(e -> handleNumberButtonClick(index));
         }
     }
 
     /**
      * Handles clicking a number button:
-     * - If value ≤ 30, regenerates the number array based on that value.
+     * - If value ≤ SMALL_NUMBER_THRESHOLD, regenerates the number array based on that value.
      * - Otherwise, shows a message dialog.
      *
      * @param index index of the clicked number button
      */
-    private void handleNumberClick(int index) {
-        int value = numbers[index];
-        if (value <= SMALL_NUMBER_LIMIT) {
-            n = value;
-            generateNumbers(n);
+    private void handleNumberButtonClick(int index) {
+        int value = numbersArray[index];
+        if (value <= SMALL_NUMBER_THRESHOLD) {
+            totalNumbers = value;
+            generateRandomNumbers(totalNumbers);
             createNumberButtons();
-            refreshNumbers();
+            layoutNumberButtons();
         } else {
-            showMessage("Please select a value smaller or equal to " + SMALL_NUMBER_LIMIT + ".");
+            showMessage("Please select a value smaller or equal to " + SMALL_NUMBER_THRESHOLD + ".");
         }
     }
 
@@ -256,20 +256,20 @@ public class Main extends JFrame {
      * Refreshes the layout of number buttons in a column-wise fashion.
      * Adds empty labels to fill grid cells if necessary.
      */
-    private void refreshNumbers() {
-        numbersContainer.removeAll();
+    private void layoutNumberButtons() {
+        numbersGridPanel.removeAll();
 
-        int cols = (int) Math.ceil((double) n / MAX_PER_COLUMN);
-        int rows = Math.min(n, MAX_PER_COLUMN);
-        numbersContainer.setLayout(new GridLayout(rows, cols, 5, 5));
+        int columns = (int) Math.ceil((double) totalNumbers / MAX_BUTTONS_PER_COLUMN);
+        int rows = Math.min(totalNumbers, MAX_BUTTONS_PER_COLUMN);
+        numbersGridPanel.setLayout(new GridLayout(rows, columns, 5, 5));
 
         for (int row = 0; row < rows; row++) {
-            for (int col = 0; col < cols; col++) {
-                int index = col * MAX_PER_COLUMN + row;
+            for (int col = 0; col < columns; col++) {
+                int index = col * MAX_BUTTONS_PER_COLUMN + row;
                 if (index < numberButtons.length) {
-                    numbersContainer.add(numberButtons[index]);
+                    numbersGridPanel.add(numberButtons[index]);
                 } else {
-                    numbersContainer.add(new JLabel());
+                    numbersGridPanel.add(new JLabel());
                 }
             }
         }
@@ -283,25 +283,25 @@ public class Main extends JFrame {
      * Disables action buttons during sorting.
      */
     private void startSorting() {
-        ascending = !ascending;
-        sortButton.setText(ascending ? "Sort ↑" : "Sort ↓");
-        sortButton.setEnabled(false);
+        isSortAscending = !isSortAscending;
+        sortToggleButton.setText(isSortAscending ? "Sort ↑" : "Sort ↓");
+        sortToggleButton.setEnabled(false);
         resetButton.setEnabled(false);
 
-        new SortingTimer().start();
+        new QuickSortAnimator().start();
     }
 
     /**
      * Swaps two elements in an array.
      *
-     * @param arr array where elements are swapped
+     * @param array array where elements are swapped
      * @param i first index
      * @param j second index
      */
-    private void swap(int[] arr, int i, int j) {
-        int tmp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = tmp;
+    private void swapArrayElements(int[] array, int i, int j) {
+        int temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
     }
 
     /**
@@ -309,7 +309,7 @@ public class Main extends JFrame {
      *
      * @return configured GridBagConstraints
      */
-    private GridBagConstraints createGbc() {
+    private GridBagConstraints createGridBagConstraints() {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
         return gbc;
@@ -345,11 +345,11 @@ public class Main extends JFrame {
     /**
      * Inner class responsible for animating QuickSort using a Swing Timer.
      */
-    private class SortingTimer {
+    private class QuickSortAnimator {
 
         private final Timer timer;
 
-        private final Deque<int[]> stack = new ArrayDeque<>();
+        private final Deque<int[]> rangeStack = new ArrayDeque<>();
 
         private final Deque<int[]> swapQueue = new ArrayDeque<>();
 
@@ -358,9 +358,9 @@ public class Main extends JFrame {
         /**
          * Constructor that initializes the stack with the full array range and sets timer delay.
          */
-        SortingTimer() {
-            stack.push(new int[]{0, numbers.length - 1});
-            timer = new Timer(300, this::step);
+        QuickSortAnimator() {
+            rangeStack.push(new int[]{0, numbersArray.length - 1});
+            timer = new Timer(300, this::performSortingStep);
         }
 
         /**
@@ -375,7 +375,7 @@ public class Main extends JFrame {
          *
          * @param e ActionEvent triggered by the Timer
          */
-        private void step(ActionEvent e) {
+        private void performSortingStep(ActionEvent e) {
             if (isSwapping) {
                 int[] pair = swapQueue.poll();
                 if (pair != null) {
@@ -393,8 +393,8 @@ public class Main extends JFrame {
                 int i = pair[0];
                 int j = pair[1];
 
-                numberButtons[i].setText(String.valueOf(numbers[i]));
-                numberButtons[j].setText(String.valueOf(numbers[j]));
+                numberButtons[i].setText(String.valueOf(numbersArray[i]));
+                numberButtons[j].setText(String.valueOf(numbersArray[j]));
                 numberButtons[i].setBackground(Color.YELLOW);
                 numberButtons[j].setBackground(Color.YELLOW);
 
@@ -402,49 +402,49 @@ public class Main extends JFrame {
                 return;
             }
 
-            if (stack.isEmpty()) {
+            if (rangeStack.isEmpty()) {
                 timer.stop();
-                sortButton.setEnabled(true);
+                sortToggleButton.setEnabled(true);
                 resetButton.setEnabled(true);
                 return;
             }
 
-            int[] range = stack.pop();
-            int l = range[0];
-            int h = range[1];
+            int[] range = rangeStack.pop();
+            int low = range[0];
+            int high = range[1];
 
-            if (l < h) {
-                int p = partitionWithQueue(numbers, l, h);
-                stack.push(new int[]{l, p - 1});
-                stack.push(new int[]{p + 1, h});
+            if (low < high) {
+                int pivotIndex = partitionAndQueueSwaps(numbersArray, low, high);
+                rangeStack.push(new int[]{low, pivotIndex - 1});
+                rangeStack.push(new int[]{pivotIndex + 1, high});
             }
         }
 
         /**
          * Partitions the array using Lomuto partition scheme and queues swaps for animation.
          *
-         * @param arr array to partition
+         * @param array array to partition
          * @param low starting index
          * @param high ending index
          *
          * @return pivot index after partition
          */
-        private int partitionWithQueue(int[] arr, int low, int high) {
-            int pivot = arr[high];
+        private int partitionAndQueueSwaps(int[] array, int low, int high) {
+            int pivot = array[high];
             int i = low - 1;
 
             for (int j = low; j < high; j++) {
-                if (ascending && arr[j] <= pivot || !ascending && arr[j] >= pivot) {
+                if (isSortAscending && array[j] <= pivot || !isSortAscending && array[j] >= pivot) {
                     i++;
                     if (i != j) {
-                        swap(arr, i, j);
+                        swapArrayElements(array, i, j);
                         swapQueue.add(new int[]{i, j});
                     }
                 }
             }
 
             if (i + 1 != high) {
-                swap(arr, i + 1, high);
+                swapArrayElements(array, i + 1, high);
                 swapQueue.add(new int[]{i + 1, high});
             }
 
@@ -456,6 +456,6 @@ public class Main extends JFrame {
      * Entry point of the application.
      */
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(Main::new);
+        SwingUtilities.invokeLater(SwingSortApp::new);
     }
 }
